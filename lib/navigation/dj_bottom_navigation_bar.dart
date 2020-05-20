@@ -5,18 +5,14 @@ import 'package:flutter/material.dart';
 
 class DJBottomNavigationBar extends StatefulWidget {
   final void Function(int index) onTap;
-  final Widget centerItem;
+  final DJBottomNavigationBarOutItem centerItem;
   final List<Widget> items;
-  final Color defaultColor;
-  final Color activeColor;
   final int currentIndex;
   const DJBottomNavigationBar({
     Key key,
     this.onTap,
     this.centerItem,
     this.items,
-    this.defaultColor,
-    this.activeColor,
     this.currentIndex,
   }) : super(key: key);
 
@@ -25,24 +21,40 @@ class DJBottomNavigationBar extends StatefulWidget {
 }
 
 class _DJBottomNavigationBarState extends State<DJBottomNavigationBar> {
-
   @override
   Widget build(BuildContext context) {
-
-    // 底部偏移，适配iPhoneXxi系列
+    // 底部偏移，适配iPhoneX系列底部安全区域
     final double additionalBottomPadding =
         MediaQuery.of(context).padding.bottom;
 
     // items个数必须为偶数个
-    if(widget.items.length%2 != 0) return null;
-    List<Widget> _totalItems = [];
-    for (int i = 0; i < widget.items.length; i++) {
-      if (i == widget.items.length / 2) {
-        _totalItems.add(Expanded(child: widget.centerItem));
-      }
-      _totalItems.add(Expanded(child: widget.items[i]));
+    int count = widget.items.length;
+    if (count % 2 != 0) return null;
+
+    Widget initExpandedWidget(int index, Widget child) {
+      return Expanded(
+        child: GestureDetector(
+          onTap: () {
+            // 点击barItem回调
+            widget.onTap(index);
+          },
+          child: child,
+        ),
+      );
     }
-    
+
+    // 实际添加到导航栏的标签
+    List<Widget> _resultItems = List();
+    for (int i = 0; i < count; i++) {
+      if(i == (count~/2)) {
+        Widget resultItem = initExpandedWidget(-1, widget.centerItem);
+        _resultItems.add(resultItem);
+      }
+      Widget tempItem = widget.items[i];
+      Widget resultItem  = initExpandedWidget(i, tempItem);
+      _resultItems.add(resultItem);
+    }
+
     return Semantics(
       explicitChildNodes: true,
       child: Material(
@@ -51,7 +63,7 @@ class _DJBottomNavigationBarState extends State<DJBottomNavigationBar> {
           constraints: BoxConstraints(
               minHeight: kBottomNavigationBarHeight + additionalBottomPadding),
           child: CustomPaint(
-            painter: CustomPaintBottomBar(),
+            painter: CustomPaintBottomBar(widget.centerItem.radius, 1),
             child: Material(
               type: MaterialType.transparency,
               child: Padding(
@@ -63,7 +75,7 @@ class _DJBottomNavigationBarState extends State<DJBottomNavigationBar> {
                     height: kBottomNavigationBarHeight,
                     child: Flex(
                       direction: Axis.horizontal,
-                      children: _totalItems,
+                      children: _resultItems,
                     ),
                   ),
                 ),
@@ -80,9 +92,8 @@ class DJBottomNavigationBarOutItem extends StatefulWidget {
   final double radius;
   final String title;
   final IconData iconData;
-  final bool selected;
   const DJBottomNavigationBarOutItem(
-      {Key key, this.title, this.iconData, this.selected, this.radius})
+      {Key key, this.title, this.iconData, this.radius})
       : super(key: key);
   @override
   _DJBottomNavigationBarOutItemState createState() =>
@@ -94,7 +105,6 @@ class _DJBottomNavigationBarOutItemState
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.cyan,
       child: Stack(
         alignment: Alignment.center,
         overflow: Overflow.visible,
@@ -107,15 +117,75 @@ class _DJBottomNavigationBarOutItemState
                 size: widget.radius * 2,
                 color: Colors.red,
               ),
-              Text(
-                widget.title,
-                style: TextStyle(fontSize: 13.0, color: Colors.grey),
+              Container(
+                height: djBottomNavigationBarItemTextHeight,
+                child: Text(
+                  widget.title,
+                  style: TextStyle(fontSize: 13.0, color: Colors.grey),
+                ),
               )
             ]),
           ),
         ],
       ),
     );
+  }
+}
+
+class CustomPaintBottomBar extends CustomPainter {
+  final double radius;
+  final double elevation;
+  CustomPaintBottomBar(this.radius, this.elevation);
+  // 绘图
+  @override
+  void paint(Canvas canvas, Size size) {
+    double offsetY = kBottomNavigationBarHeight -
+        djBottomNavigationBarItemTextHeight -
+        djBottomNavigationBarBottomPadding -
+        radius;
+    Paint paint = Paint();
+    paint.color = Colors.white; // 画笔颜色
+    paint.isAntiAlias = true; // 是否抗锯齿
+    paint.style = PaintingStyle.fill; //画笔样式:填充
+    Path path = new Path();
+    path.moveTo(0.0, 0.0);
+    Rect rect = Rect.fromCircle(
+      center: Offset(size.width * 0.5, offsetY),
+      radius: radius,
+    );
+    path.arcTo(rect, djPI + asin(offsetY / radius),
+        djPI - 2 * asin(offsetY / radius), false);
+    path.lineTo(size.width, 0.0);
+    path.lineTo(size.width, size.height);
+    path.lineTo(0.0, size.height);
+    path.close();
+    canvas.drawPath(path, paint);
+
+    if (elevation > 0) {
+      double shadowRadius = radius - elevation;
+      double shadowOffsetY = offsetY - elevation;
+      Rect shadowRect = Rect.fromCircle(
+        center: Offset(size.width * 0.5, offsetY),
+        radius: shadowRadius,
+      );
+      Path shadowPath = Path.combine(
+          PathOperation.difference,
+          path,
+          Path()
+            ..moveTo(elevation, elevation)
+            ..arcTo(shadowRect, djPI + asin(shadowOffsetY / shadowRadius),
+                djPI - 2 * asin(shadowOffsetY / shadowRadius), false)
+            ..lineTo(size.width, elevation)
+            ..lineTo(size.width, size.height)
+            ..lineTo(elevation, size.height)
+            ..close());
+      canvas.drawShadow(shadowPath, Color(0x229E9E9E), -elevation, false);
+    }
+  }
+  // 刷新布局的时候告诉flutter 是否需要重绘
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) {
+    return true;
   }
 }
 
@@ -155,48 +225,21 @@ class _DJBottomNavigationBarItemState extends State<DJBottomNavigationBarItem> {
                   size: 26.0,
                   color: widget.selected ? activeColor : defaultColor,
                 ),
-                Text(
-                  widget.title,
-                  style: TextStyle(
-                    fontSize: 13.0,
-                    color: widget.selected ? activeColor : defaultColor,
+                Container(
+                  height: djBottomNavigationBarItemTextHeight,
+                  child: Text(
+                    widget.title,
+                    style: TextStyle(
+                      fontSize: 13.0,
+                      color: widget.selected ? activeColor : defaultColor,
+                    ),
                   ),
-                ),
+                )
               ],
             ),
           ),
         ),
       ),
     );
-  }
-}
-
-class CustomPaintBottomBar extends CustomPainter {
-  double radius = 27.0 / cos(DJ_PI / 12);
-  //绘制流程
-  @override
-  void paint(Canvas canvas, Size size) {
-    Paint p = new Paint();
-    p.color = Colors.white; // 画笔颜色
-    p.isAntiAlias = true; // 是否抗锯齿
-    p.style = PaintingStyle.fill; //画笔样式:填充
-    p.strokeWidth = 1.0;
-    Path path = new Path();
-    path.moveTo(0.0, 0.0);
-    Rect rect = Rect.fromCircle(
-        center: Offset(size.width * 0.5, 0 + radius * sin(DJ_PI / 12)),
-        radius: radius);
-    path.arcTo(rect, DJ_PI * 13 / 12, DJ_PI * 10 / 12, false);
-    path.lineTo(size.width, 0.0);
-    path.lineTo(size.width, size.height);
-    path.lineTo(0.0, size.height);
-    path.lineTo(0.0, 0.0);
-    canvas.drawPath(path, p);
-  }
-
-  // 刷新布局的时候告诉flutter 是否需要重绘
-  @override
-  bool shouldRepaint(CustomPainter oldDelegate) {
-    return true;
   }
 }

@@ -25,34 +25,44 @@ class _DJBottomTabBarPageState extends State<DJBottomTabBarPage> {
         controller: _pageController,
         children: <Widget>[
           DJHomePage(),
-          DJChargeAccountPage(),
           DJUserCenterPage(),
         ],
       ),
       bottomNavigationBar: DJBottomNavigationBar(
         onTap: (index) {
+          if (index == -1) {
+            print(index);
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (BuildContext context) {
+                return DJChargeAccountPage();
+              }),
+            );
+          } else {
+            _pageController.jumpToPage(index);
+            setState(() {
+              currentIndex = index;
+            });
+          }
         },
-        defaultColor: Color(0xff8a8a8a),
-        activeColor: Color(0xff50b4ed),
         centerItem: DJBottomNavigationBarOutItem(
-          radius: 26.0,
+          radius: 28.0,
           title: "记账",
           iconData: Icons.add_circle,
-          selected: false,
         ),
         items: <Widget>[
           DJBottomNavigationBarItem(
             title: "首页",
             iconData: Icons.home,
-            selected: true,
+            selected: currentIndex == 0,
           ),
           DJBottomNavigationBarItem(
             title: "个人中心",
             iconData: Icons.person,
-            selected: false,
+            selected: currentIndex == 1,
           ),
         ],
-        currentIndex: 0,
+        currentIndex: currentIndex,
       ),
     );
   }
