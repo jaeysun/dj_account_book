@@ -9,6 +9,8 @@ class DJAccountBookApp extends StatelessWidget {
       title: 'Flutter Demo',
       theme: ThemeData(
         primarySwatch: Colors.lightBlue,
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
       ),
       home: DJBottomTabBarPage(),
     );
