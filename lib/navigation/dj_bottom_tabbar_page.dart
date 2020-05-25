@@ -31,13 +31,18 @@ class _DJBottomTabBarPageState extends State<DJBottomTabBarPage> {
       bottomNavigationBar: DJBottomNavigationBar(
         onTap: (index) {
           if (index == -1) {
+            // 中间创建记账
             print(index);
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (BuildContext context) {
-                return DJChargeAccountPage();
-              }),
-            );
+            Navigator.of(context).push(PageRouteBuilder(
+              opaque: false,
+              pageBuilder: (BuildContext context, Animation animation,
+                      Animation secondaryAnimation) =>
+                  FadeTransition(
+                      // 使用渐隐渐入过渡,
+                      opacity: animation,
+                      child: DJChargeAccountPage(),
+                  ),
+            ));
           } else {
             _pageController.jumpToPage(index);
             setState(() {

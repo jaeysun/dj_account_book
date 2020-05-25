@@ -8,8 +8,12 @@ class DJChargeAccountPage extends StatefulWidget {
 class _DJChargeAccountPageState extends State<DJChargeAccountPage> {
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.lightBlueAccent,
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          "日常账本"
+        ),
+      ),
     );
   }
 }
